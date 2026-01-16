@@ -14,16 +14,16 @@ import java.util.logging.Level;
 @Setter
 public class User {
 
-    Long id;
+    private Long id;
 
-    String email;
-    String passwordHash;
-    String name;
+    private String email;
+    private String passwordHash;
+    private String name;
 
-    String avatarUrl;
+    private String avatarUrl;
 
-    Instant createdAt;
-    Instant updatedAt;
-    Instant deletedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
+    private Instant deletedAt;
 
 }
