@@ -2,9 +2,8 @@ package com.codingShuttle.projects.lovable.clone.controller;
 
 import com.codingShuttle.projects.lovable.clone.dto.member.InviteMemberRequest;
 import com.codingShuttle.projects.lovable.clone.dto.member.MemberResponse;
-import com.codingShuttle.projects.lovable.clone.dto.member.UpdateMemberRequestRole;
+import com.codingShuttle.projects.lovable.clone.dto.member.UpdateMemberRoleRequest;
 import com.codingShuttle.projects.lovable.clone.service.ProjectMemberService;
-import com.codingShuttle.projects.lovable.clone.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,10 +37,10 @@ public class ProjectMemberController {
     }
 
     @PatchMapping("/{memberId}")
-    public ResponseEntity<MemberResponse> updateMember(
+    public ResponseEntity<MemberResponse> updateMemberRole(
             @PathVariable Long projectId,
             @PathVariable Long memberId,
-            @RequestBody InviteMemberRequest request
+            @RequestBody UpdateMemberRoleRequest request
     ){
         Long userId = 1l;
         return ResponseEntity.ok(projectMemberService.updateMemberRole(projectId, memberId, request, userId));

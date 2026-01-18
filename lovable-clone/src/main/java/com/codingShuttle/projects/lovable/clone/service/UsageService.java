@@ -1,5 +1,6 @@
 package com.codingShuttle.projects.lovable.clone.service;
 
+import com.codingShuttle.projects.lovable.clone.dto.subscription.PlanLimitResponse;
 import com.codingShuttle.projects.lovable.clone.dto.subscription.UsageTodayResponse;
 import org.jspecify.annotations.Nullable;
 
