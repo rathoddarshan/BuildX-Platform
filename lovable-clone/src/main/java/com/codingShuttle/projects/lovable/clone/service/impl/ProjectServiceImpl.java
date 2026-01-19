@@ -4,10 +4,13 @@ import com.codingShuttle.projects.lovable.clone.dto.project.ProjectRequest;
 import com.codingShuttle.projects.lovable.clone.dto.project.ProjectResponse;
 import com.codingShuttle.projects.lovable.clone.dto.project.ProjectSummaryResponse;
 import com.codingShuttle.projects.lovable.clone.service.ProjectService;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 @Service
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class ProjectServiceImpl implements ProjectService {
     @Override
     public List<ProjectSummaryResponse> getUserProject(Long userId) {

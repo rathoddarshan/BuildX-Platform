@@ -1,10 +1,10 @@
 package com.codingShuttle.projects.lovable.clone.entity;
 
-import jakarta.persistence.Entity;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.logging.Level;
@@ -12,8 +12,14 @@ import java.util.logging.Level;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
 @Setter
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Table(name = "users")
 public class User {
 
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String email;
@@ -22,7 +28,9 @@ public class User {
 
     private String avatarUrl;
 
+    @CreationTimestamp
     private Instant createdAt;
+    @UpdateTimestamp
     private Instant updatedAt;
     private Instant deletedAt;
 
