@@ -16,6 +16,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
@@ -34,6 +36,7 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = Project.builder()
                 .name(request.name())
                 .owner(owner)
+                .isPublic(false)
                 .build();
 
         project = projectRepository.save(project);
@@ -43,7 +46,15 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public List<ProjectSummaryResponse> getUserProject(Long userId) {
-        return List.of();
+
+//        return projectRepository.findAllAccessibleByUser(userId)
+//                .stream()
+//                .map(projectMapper::toProjectSummaryResponse)
+//                .collect(Collectors.toList());
+
+        var projects = projectRepository.findAllAccessibleByUser(userId);
+
+        return projectMapper.toListOfProjectSummaryResponse(projects);
     }
 
     @Override
