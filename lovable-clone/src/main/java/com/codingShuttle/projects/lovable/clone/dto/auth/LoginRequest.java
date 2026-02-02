@@ -1,7 +1,12 @@
 package com.codingShuttle.projects.lovable.clone.dto.auth;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public record LoginRequest(
-        String email,
-        String password
+        @NotBlank @Email String email,
+        @Size(min = 4, max = 12) String password
 ) {
 }
