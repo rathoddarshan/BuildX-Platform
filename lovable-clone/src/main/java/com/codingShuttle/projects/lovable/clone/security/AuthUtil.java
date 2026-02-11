@@ -1,6 +1,7 @@
 package com.codingShuttle.projects.lovable.clone.security;
 
 import com.codingShuttle.projects.lovable.clone.entity.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,5 +28,18 @@ public class AuthUtil {
                 .setExpiration(new Date(System.currentTimeMillis()+1000*60*10))
                 .signWith(getSecretKey())
                 .compact();
+    }
+
+    public JwtUserPrincipal verifyAccessToken(String token){
+       Claims claims = Jwts.parserBuilder()
+               .setSigningKey(getSecretKey())
+               .build()
+               .parseClaimsJws(token)
+               .getBody();
+
+       Long userId = Long.parseLong(claims.get("userId", String.class));
+       String username = claims.getSubject();
+
+       return new JwtUserPrincipal(userId, username);
     }
 }
