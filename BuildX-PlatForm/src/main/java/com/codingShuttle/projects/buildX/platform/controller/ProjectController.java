@@ -3,6 +3,7 @@ package com.codingShuttle.projects.buildX.platform.controller;
 import com.codingShuttle.projects.buildX.platform.dto.project.ProjectRequest;
 import com.codingShuttle.projects.buildX.platform.dto.project.ProjectResponse;
 import com.codingShuttle.projects.buildX.platform.dto.project.ProjectSummaryResponse;
+import com.codingShuttle.projects.buildX.platform.security.AuthUtil;
 import com.codingShuttle.projects.buildX.platform.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,32 +22,27 @@ public class ProjectController {
 
     @GetMapping
     public ResponseEntity<List<ProjectSummaryResponse>> getMyProjects(){
-        Long userId = 1l;//TODo:- will update later with real spring security.
-        return ResponseEntity.ok(projectService.getUserProject(userId));
+        return ResponseEntity.ok(projectService.getUserProject());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProjectResponse> getProjectById(@PathVariable Long id){
-        Long userId = 1l;
-        return ResponseEntity.ok(projectService.getUserProjectById(id, userId));
+        return ResponseEntity.ok(projectService.getUserProjectById(id));
     }
 
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(@RequestBody @Valid ProjectRequest request){
-        Long userId = 1l;
-        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.createProject(request, userId));
+        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.createProject(request));
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id, @RequestBody @Valid ProjectRequest request){
-        Long userId = 1l;
-        return ResponseEntity.ok(projectService.updateProject(id, request, userId));
+        return ResponseEntity.ok(projectService.updateProject(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id){
-        Long userId = 1l;
-        projectService.softDelete(id, userId);
+        projectService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 
