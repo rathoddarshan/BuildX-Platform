@@ -13,11 +13,13 @@ import com.codingShuttle.projects.buildX.platform.mapper.ProjectMapper;
 import com.codingShuttle.projects.buildX.platform.repository.ProjectMemberRepository;
 import com.codingShuttle.projects.buildX.platform.repository.ProjectRepository;
 import com.codingShuttle.projects.buildX.platform.repository.UserRepository;
+import com.codingShuttle.projects.buildX.platform.security.AuthUtil;
 import com.codingShuttle.projects.buildX.platform.service.ProjectService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -33,23 +35,24 @@ public class ProjectServiceImpl implements ProjectService {
     UserRepository userRepository;
     ProjectMapper projectMapper;
     ProjectMemberRepository projectMemberRepository;
+    AuthUtil authUtil;
 
     @Override
-    public ProjectResponse createProject(ProjectRequest request, Long userId) {
-
-        User owner = userRepository.findById(userId).orElseThrow(
-                ()-> new ResourceNotFoundException("User", userId.toString())
-        );
+    public ProjectResponse createProject(ProjectRequest request) {
+        Long userId = authUtil.getCurrentUserId();
+//        User owner = userRepository.findById(userId).orElseThrow(
+//                () -> new ResourceNotFoundException("User", userId.toString())
+//        );
+        User owner = userRepository.getReferenceById(userId);
 
         Project project = Project.builder()
                 .name(request.name())
                 .isPublic(false)
                 .build();
-
         project = projectRepository.save(project);
 
-        ProjectMemberId projectMemberId = new ProjectMemberId(project.getId(), owner.getId());
 
+        ProjectMemberId projectMemberId = new ProjectMemberId(project.getId(), owner.getId());
         ProjectMember projectMember = ProjectMember.builder()
                 .id(projectMemberId)
                 .projectRole(ProjectRole.OWNER)
@@ -58,13 +61,14 @@ public class ProjectServiceImpl implements ProjectService {
                 .invitedAt(Instant.now())
                 .project(project)
                 .build();
-
         projectMemberRepository.save(projectMember);
+
         return projectMapper.toProjectResponse(project);
     }
 
     @Override
-    public List<ProjectSummaryResponse> getUserProject(Long userId) {
+    public List<ProjectSummaryResponse> getUserProject() {
+        Long userId = authUtil.getCurrentUserId();
 
         var projects = projectRepository.findAllAccessibleByUser(userId);
 
@@ -72,16 +76,18 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public ProjectResponse getUserProjectById(Long id, Long userId) {
-
-        Project project = getAccessibleProjectById(id, userId);
+    @PreAuthorize("@security.canViewProject(#projectId)")
+    public ProjectResponse getUserProjectById(Long projectId) {
+        Long userId = authUtil.getCurrentUserId();
+        Project project = getAccessibleProjectById(projectId, userId);
         return projectMapper.toProjectResponse(project);
     }
 
 
     @Override
-    public ProjectResponse updateProject(Long id, ProjectRequest request, Long userId) {
-
+    @PreAuthorize("@security.canEditProject(#projectId)")
+    public ProjectResponse updateProject(Long id, ProjectRequest request) {
+        Long userId = authUtil.getCurrentUserId();
         Project project = getAccessibleProjectById(id, userId);
 
         project.setName(request.name());
@@ -90,9 +96,10 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public void softDelete(Long id, Long userId) {
-
-        Project project = getAccessibleProjectById(id, userId);
+    @PreAuthorize("@security.canDeleteProject(#projectId)")
+    public void softDelete(Long projectId) {
+        Long userId = authUtil.getCurrentUserId();
+        Project project = getAccessibleProjectById(projectId, userId);
 
         project.setDeletedAt(Instant.now());
         projectRepository.save(project);
