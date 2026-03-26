@@ -34,7 +34,7 @@ public class BillingController {
     public ResponseEntity<CheckoutResponse> createCheckoutResponse(
             @RequestBody CheckoutRequest request
     ) {
-        return ResponseEntity.ok(paymentProcessor.  createCheckoutSessionUrl(request));
+        return ResponseEntity.ok(paymentProcessor.createCheckoutSessionUrl(request));
     }
 
 

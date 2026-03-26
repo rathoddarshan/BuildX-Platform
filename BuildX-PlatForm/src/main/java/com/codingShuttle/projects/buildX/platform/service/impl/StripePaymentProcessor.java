@@ -38,24 +38,25 @@ public class StripePaymentProcessor implements PaymentProcessor {
                         SessionCreateParams.LineItem.builder().setPrice(plan.getStripePriceId()).setQuantity(1L).build())
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setSubscriptionData(
-                        new SessionCreateParams.SubscriptionData().builder()
+                        new SessionCreateParams.SubscriptionData.Builder()
                                 .setBillingMode(SessionCreateParams.SubscriptionData.BillingMode.builder()
                                         .setType(SessionCreateParams.SubscriptionData.BillingMode.Type.FLEXIBLE)
                                         .build())
                                 .build()
                 )
                 .setSuccessUrl(frontendUrl + "/success.html?session_id={CHECKOUT_SESSION_ID}")
-                .setCancelUrl(frontendUrl + "/cancel.html}")
+                .setCancelUrl(frontendUrl + "/cancel.html")
                 .putMetadata("user_id", userId.toString())
                 .putMetadata("plan_id", plan.getId().toString())
                 .build();
         try {
             Session session = Session.create(params);
+            return new CheckoutResponse(session.getUrl());
         } catch (StripeException e) {
             throw new RuntimeException(e);
         }
 
-        return null;
+
     }
 
     @Override
