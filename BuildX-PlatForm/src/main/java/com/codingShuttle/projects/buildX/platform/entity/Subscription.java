@@ -1,13 +1,12 @@
 package com.codingShuttle.projects.buildX.platform.entity;
 
-import com.codingShuttle.projects.buildX.platform.enums.SubcriptionStatus;
 import com.codingShuttle.projects.buildX.platform.enums.SubscriptionStatus;
+//import com.codingShuttle.projects.buildX.platform.enums.SubscriptionStatus;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 
 import java.time.Instant;
@@ -16,6 +15,9 @@ import java.time.Instant;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Subscription {
 
     @Id
@@ -30,9 +32,10 @@ public class Subscription {
     @JoinColumn(nullable = false, name = "plan_id")
     Plan plan;
 
-    @Enumerated
+
     String stripeSubscriptionId;
 
+    @Enumerated(EnumType.STRING)
     SubscriptionStatus status;
 
     Instant currentPeriodStart;
@@ -41,6 +44,6 @@ public class Subscription {
 
     @CreationTimestamp
     Instant createdAt;
-    @CreationTimestamp
+    @UpdateTimestamp
     Instant updatedAt;
 }

@@ -97,8 +97,8 @@ public class StripePaymentProcessor implements PaymentProcessor {
 
         switch(type){
             case "checkout.session.completed" -> handleCheckoutSessionCompleted((Session) stripeObject, metadata); //one-time, on checkout completed
-            case "checkout.subscription.updated" -> handleCustomerSubscriptionUpdate((Subscription) stripeObject);//when user cancel, upgrades or any updates
-            case "checkout.subscription.deleted" ->handleCustomerSubscriptionDeleted((Subscription) stripeObject);//when subscription ends, revoke the access
+            case "customer.subscription.updated" -> handleCustomerSubscriptionUpdate((Subscription) stripeObject);//when user cancel, upgrades or any updates
+            case "customer.subscription.deleted" ->handleCustomerSubscriptionDeleted((Subscription) stripeObject);//when subscription ends, revoke the access
             case "invoice.paid" ->handleInvoicePaid((Invoice) stripeObject);//when invoice is paid
             case "invoice.payment_failed" ->handleInvoicePaymentFailed((Invoice) stripeObject);// when invoice is not paid, mark as PAST_DUE
             default -> log.debug("Ignoring the event: {}", type);
