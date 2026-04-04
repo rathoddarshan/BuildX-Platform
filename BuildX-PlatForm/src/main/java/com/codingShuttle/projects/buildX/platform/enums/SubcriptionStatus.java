@@ -1,5 +1,10 @@
 package com.codingShuttle.projects.buildX.platform.enums;
 
-public enum SubcriptionStatus {
-    Active, Trailing, Canceled, Past_Due,  Incomplete
+public enum SubscriptionStatus {
+    ACTIVE,
+    TRIALING,
+    CANCELED,
+    PAST_DUE,
+    INCOMPLETE,
+    INCOMPLETE_EXPIRED
 }
