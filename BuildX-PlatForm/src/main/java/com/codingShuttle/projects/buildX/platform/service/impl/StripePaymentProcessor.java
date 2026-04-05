@@ -5,6 +5,7 @@ import com.codingShuttle.projects.buildX.platform.dto.subscription.CheckoutRespo
 import com.codingShuttle.projects.buildX.platform.dto.subscription.PortalResponse;
 import com.codingShuttle.projects.buildX.platform.entity.Plan;
 import com.codingShuttle.projects.buildX.platform.entity.User;
+import com.codingShuttle.projects.buildX.platform.error.BadRequestException;
 import com.codingShuttle.projects.buildX.platform.error.ResourceNotFoundException;
 import com.codingShuttle.projects.buildX.platform.repository.PlanRepository;
 import com.codingShuttle.projects.buildX.platform.repository.UserRepository;
@@ -87,7 +88,26 @@ public class StripePaymentProcessor implements PaymentProcessor {
 
     @Override
     public PortalResponse openCustomerPortal() {
-        return null;
+        Long userId = authUtil.getCurrentUserId();
+        User user = getUser(userId);
+        String stripeCustomerId = user.getStripeCustomerId();
+
+        if (stripeCustomerId == null || stripeCustomerId.isEmpty()) {
+            throw new BadRequestException("User does not have a Stripe Customer Id");
+        }
+
+        try {
+            var portalSession = com.stripe.model.billingportal.Session.create(
+                    com.stripe.param.billingportal.SessionCreateParams.builder()
+                            .setCustomer(stripeCustomerId)
+                            .setReturnUrl(frontendUrl)
+                            .build()
+            );
+
+            return new PortalResponse(portalSession.getUrl());
+        } catch (StripeException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -145,7 +165,7 @@ public class StripePaymentProcessor implements PaymentProcessor {
 
         long planId = resolvePlanId(item.getPrice());
 
-        subscriptionService.updateSubcription(
+        subscriptionService.updateSubscription(
                 subscription.getId(), status, periodStart, periodEnd,
                 subscription.getCancelAtPeriodEnd(), planId
         );
