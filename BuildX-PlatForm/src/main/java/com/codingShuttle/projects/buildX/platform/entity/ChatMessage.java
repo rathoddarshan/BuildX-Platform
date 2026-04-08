@@ -1,24 +1,42 @@
 package com.codingShuttle.projects.buildX.platform.entity;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import com.codingShuttle.projects.buildX.platform.enums.MessageRole;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+@Entity
+@Table(name = "chat_messages")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ChatMessage {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
-    ChatSession chatSession;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+            @JoinColumns({
+                    @JoinColumn(name = "project_id", referencedColumnName = "project_id", nullable = false),
+                    @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
+            })
+    ChatSession chatSession;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    MessageRole role;
+
+    @Column(columnDefinition = "text", nullable = false)
     String content;
 
     String toolCalls;
 
-    Integer tokensUsed;
-
+    Integer tokensUsed = 0;
+    @CreationTimestamp
     Instant createdAt;
 }

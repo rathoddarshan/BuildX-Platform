@@ -34,6 +34,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final int FREE_TIER_PROJECT_ALLOWED = 1;
+
     @Override
     public SubscriptionResponse getCurrentSubscription() {
         Long userId = authUtil.getCurrentUserId();
@@ -155,7 +157,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     }
 
-    private final int FREE_TIER_PROJECT_ALLOWED = 1;
 
     @Override
     public boolean canCreateNewProject() {
@@ -168,7 +169,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if(currentSubscription.plan() == null){
             return countOfOwnedProjects < FREE_TIER_PROJECT_ALLOWED;
         }
-        return countOfOwnedProjects < currentSubscription.plan().max;
+        return countOfOwnedProjects < currentSubscription.plan().maxProject();
     }
 
     //utility methods
