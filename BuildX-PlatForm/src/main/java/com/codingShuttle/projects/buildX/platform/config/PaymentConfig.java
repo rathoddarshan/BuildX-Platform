@@ -1,7 +1,6 @@
 package com.codingShuttle.projects.buildX.platform.config;
 
-import com.razorpay.RazorpayClient;
-import com.razorpay.RazorpayException;
+
 import com.stripe.Stripe;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
