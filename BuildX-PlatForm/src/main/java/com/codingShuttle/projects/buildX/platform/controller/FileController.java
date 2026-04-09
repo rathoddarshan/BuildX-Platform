@@ -2,7 +2,7 @@ package com.codingShuttle.projects.buildX.platform.controller;
 
 import com.codingShuttle.projects.buildX.platform.dto.project.FileContentResponse;
 import com.codingShuttle.projects.buildX.platform.dto.project.FileNode;
-import com.codingShuttle.projects.buildX.platform.service.FileService;
+import com.codingShuttle.projects.buildX.platform.service.ProjectFileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,12 +17,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FileController {
 
-    private final FileService fileService;
+    private final ProjectFileService projectFileService;
 
     @GetMapping
     public ResponseEntity<List<FileNode>> getFileTree(@PathVariable Long projectId){
         Long userId = 1l;
-        return ResponseEntity.ok(fileService.getFileTree(projectId, userId));
+        return ResponseEntity.ok(projectFileService.getFileTree(projectId, userId));
     }
 
     @GetMapping("/{*path}")
@@ -31,7 +31,7 @@ public class FileController {
             @PathVariable String path
     ){
         Long userId = 1l;
-        return ResponseEntity.ok(fileService.getFileContent(projectId, path, userId));
+        return ResponseEntity.ok(projectFileService.getFileContent(projectId, path, userId));
 
     }
 }
