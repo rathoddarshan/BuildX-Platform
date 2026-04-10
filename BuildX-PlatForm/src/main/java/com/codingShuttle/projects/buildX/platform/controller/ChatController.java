@@ -24,7 +24,13 @@ public class ChatController {
         return aiGenerationService.streamResponse(request.message(), request.projectId())
                 .map(data -> ServerSentEvent.<String>builder()
                         .data(data)
-                        .build());
+                        .build())
+                .onErrorReturn(
+                        ServerSentEvent.<String>builder()
+                                        .event("error")
+                                .data("Something went wrong, please try again.")
+                                .build()
+                );
 
     }
 }
