@@ -13,6 +13,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 //import javax.swing.*;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -50,6 +51,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 })
                 .stream()
                 .chatResponse()
+                .delayElements(Duration.ofMillis(200))
                 .doOnNext(response -> {
                     String content = response.getResult().getOutput().getText();
                     if (content != null) {
