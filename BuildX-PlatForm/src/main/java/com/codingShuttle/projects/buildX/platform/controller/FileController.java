@@ -22,7 +22,7 @@ public class FileController {
     @GetMapping
     public ResponseEntity<List<FileNode>> getFileTree(@PathVariable Long projectId){
         Long userId = 1l;
-        return ResponseEntity.ok(projectFileService.getFileTree(projectId, userId));
+        return ResponseEntity.ok(projectFileService.getFileTree(projectId));
     }
 
     @GetMapping("/{*path}")
