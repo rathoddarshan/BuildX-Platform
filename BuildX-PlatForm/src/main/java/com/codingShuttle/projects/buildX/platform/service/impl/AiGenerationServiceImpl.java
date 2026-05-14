@@ -1,6 +1,7 @@
 package com.codingShuttle.projects.buildX.platform.service.impl;
 
 import com.codingShuttle.projects.buildX.platform.llm.PromptUtils;
+import com.codingShuttle.projects.buildX.platform.llm.advisers.FileTreeContextAdviser;
 import com.codingShuttle.projects.buildX.platform.security.AuthUtil;
 import com.codingShuttle.projects.buildX.platform.service.AiGenerationService;
 import com.codingShuttle.projects.buildX.platform.service.ProjectFileService;
@@ -27,6 +28,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
     private final ChatClient chatClient;
     private final AuthUtil authUtil;
     private final ProjectFileService projectFileService;
+    private final FileTreeContextAdviser fileTreeContextAdviser;
 
     private static final Pattern FILE_TAG_PATTERN =
             Pattern.compile("<file path=\"([^\\\"]+)\">(.*?)</file>", Pattern.DOTALL);
@@ -48,6 +50,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 .user(userMessage)
                 .advisors(advisorSpec -> {
                     advisorSpec.params(advisorParams);
+                    advisorSpec.advisors(fileTreeContextAdviser);
                 })
                 .stream()
                 .chatResponse()
