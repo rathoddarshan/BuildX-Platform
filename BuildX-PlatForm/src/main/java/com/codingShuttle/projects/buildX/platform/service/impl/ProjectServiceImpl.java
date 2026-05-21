@@ -16,6 +16,7 @@ import com.codingShuttle.projects.buildX.platform.repository.ProjectRepository;
 import com.codingShuttle.projects.buildX.platform.repository.UserRepository;
 import com.codingShuttle.projects.buildX.platform.security.AuthUtil;
 import com.codingShuttle.projects.buildX.platform.service.ProjectService;
+import com.codingShuttle.projects.buildX.platform.service.ProjectTemplateService;
 import com.codingShuttle.projects.buildX.platform.service.SubscriptionService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
@@ -39,6 +40,7 @@ public class ProjectServiceImpl implements ProjectService {
     ProjectMemberRepository projectMemberRepository;
     AuthUtil authUtil;
     SubscriptionService subscriptionService;
+    ProjectTemplateService projectTemplateService;
 
     @Override
     public ProjectResponse createProject(ProjectRequest request) {
@@ -70,6 +72,8 @@ public class ProjectServiceImpl implements ProjectService {
                 .project(project)
                 .build();
         projectMemberRepository.save(projectMember);
+
+        projectTemplateService.initializeProjectFromTemplate(project.getId());
 
         return projectMapper.toProjectResponse(project);
     }

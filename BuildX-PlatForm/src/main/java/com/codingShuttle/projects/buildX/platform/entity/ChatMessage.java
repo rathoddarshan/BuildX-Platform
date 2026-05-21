@@ -15,7 +15,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ChatMessage {
+public class    ChatMessage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
