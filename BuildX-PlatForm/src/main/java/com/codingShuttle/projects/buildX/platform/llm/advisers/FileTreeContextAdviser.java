@@ -11,6 +11,7 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -57,15 +58,23 @@ public class FileTreeContextAdviser implements StreamAdvisor {
         }
 
         List<FileNode> fileTree = projectFileService.getFileTree(projectId);
-        String fileTreeContext = "\n\n ---- FILE_TREE \n"+fileTree.toString();
-        userMessages.add(new SystemMessage(fileTreeContext));
+        String fileTreeContext = """
+        ---- FILE TREE ----
+        %s
+        """.formatted(fileTree);
+        allMessages.add(new SystemMessage(fileTreeContext));
 
         allMessages.addAll(userMessages);
+
+        return request
+                .mutate()
+                .prompt(new Prompt(allMessages, request.prompt().getOptions()))
+                .build();
     }
 
     @Override
     public String getName() {
-        return "";
+        return "file-tree-context-advisor";
     }
 
     @Override

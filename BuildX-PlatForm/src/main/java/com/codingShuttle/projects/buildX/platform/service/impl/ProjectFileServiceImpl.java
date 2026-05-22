@@ -9,6 +9,7 @@ import com.codingShuttle.projects.buildX.platform.mapper.ProjectFileMapper;
 import com.codingShuttle.projects.buildX.platform.repository.ProjectFileRepository;
 import com.codingShuttle.projects.buildX.platform.repository.ProjectRepository;
 import com.codingShuttle.projects.buildX.platform.service.ProjectFileService;
+import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -36,6 +38,8 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     @Value("${minio.project-bucket}")
     private String projectBucket;
 
+    private static final String BUCKET_NAME = "projects";
+
     @Override
     public List<FileNode> getFileTree(Long projectId) {
 
@@ -45,9 +49,24 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     }
 
     @Override
-    public FileContentResponse getFileContent(Long projectId, String path, Long userId) {
+    public FileContentResponse getFileContent(Long projectId, String path) {
 
-        return null;
+        String objectName = projectId + "/" + path;
+
+        try(
+            InputStream is = minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(BUCKET_NAME)
+                            .object(objectName)
+                            .build())){
+
+            String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            return new FileContentResponse(path, content);
+
+        } catch (Exception e) {
+            log.info("Failed to read file: {}/{}", projectId, path, e);
+            throw new RuntimeException("Failed to read file Content", e);
+        }
     }
 
     @Override
