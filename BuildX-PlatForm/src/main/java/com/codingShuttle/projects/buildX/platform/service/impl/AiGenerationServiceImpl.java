@@ -1,5 +1,7 @@
 package com.codingShuttle.projects.buildX.platform.service.impl;
 
+import com.codingShuttle.projects.buildX.platform.entity.ChatSession;
+import com.codingShuttle.projects.buildX.platform.llm.LlmResponseParser;
 import com.codingShuttle.projects.buildX.platform.llm.PromptUtils;
 import com.codingShuttle.projects.buildX.platform.llm.advisers.FileTreeContextAdviser;
 import com.codingShuttle.projects.buildX.platform.llm.tools.CodeGenerationTool;
@@ -30,6 +32,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
     private final AuthUtil authUtil;
     private final ProjectFileService projectFileService;
     private final FileTreeContextAdviser fileTreeContextAdviser;
+    private final LlmResponseParser llmResponseParser;
 
     private static final Pattern FILE_TAG_PATTERN =
             Pattern.compile("<file path=\"([^\\\"]+)\">(.*?)</file>", Pattern.DOTALL);
@@ -78,6 +81,10 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                         sink.next(text);
                     }
                 });
+    }
+
+    private void finalizeChats(String userMessage, ChatSession chatSession, String fullText, Long projectId){
+
     }
 
     private void parseAndSaveFiles(String fullResponse, Long projectId) {
