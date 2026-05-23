@@ -34,6 +34,7 @@ public class ChatSession {
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
+
     Instant createdAt;
     @UpdateTimestamp
     Instant updatedAt;

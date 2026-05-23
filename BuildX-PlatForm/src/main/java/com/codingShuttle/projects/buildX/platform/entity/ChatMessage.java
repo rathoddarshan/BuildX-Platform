@@ -7,6 +7,8 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.util.List;
+
 @Entity
 @Table(name = "chat_messages")
 @Getter
@@ -31,10 +33,14 @@ public class    ChatMessage {
     @Column(nullable = false)
     MessageRole role;
 
-    @Column(columnDefinition = "text", nullable = false)
-    String content;
+    @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OrderBy("sequenceOrder ASC")
+    List<ChatEvent> events;
 
-    String toolCalls;
+    @Column(columnDefinition = "text")
+    String content;//null unless user ROLE
+
+//    String toolCalls;
 
     Integer tokensUsed = 0;
     @CreationTimestamp

@@ -34,9 +34,7 @@ public class CodeGenerationTool {
             result.add(String.format(
                     "--- START OF FILE: %s ---\n%s\n--- END OF FILE---",
                     cleanPath, content));
-
         }
-
         return result;
     }
 }
