@@ -1,8 +1,9 @@
 package com.codingShuttle.projects.buildX.platform.service.impl;
 
 import com.codingShuttle.projects.buildX.platform.dto.chat.ChatResponse;
+import com.codingShuttle.projects.buildX.platform.entity.ChatMessage;
 import com.codingShuttle.projects.buildX.platform.entity.ChatSession;
-import com.codingShuttle.projects.buildX.platform.entity.ChatSessonId;
+import com.codingShuttle.projects.buildX.platform.entity.ChatSessionId;
 import com.codingShuttle.projects.buildX.platform.mapper.ChatMapper;
 import com.codingShuttle.projects.buildX.platform.repository.ChatMessageRepository;
 import com.codingShuttle.projects.buildX.platform.repository.ChatSessionRepository;
@@ -31,9 +32,16 @@ public class ChatServiceImpl implements ChatService {
 
         Long userId = authUtil.getCurrentUserId();
 
-        ChatSession chatSession = chatSessionRepository.getReferenceById(
-                new ChatSessonId(userId, projectId)
-        );
-        return List.of();
+        ChatSession chatSession = chatSessionRepository.findById(
+                new ChatSessionId(userId, projectId)
+        ).orElseThrow(null);
+
+        if(chatSession == null){
+            return List.of();
+        }
+
+        List<ChatMessage> chatMessages = chatMessageRepository.findByChatSession(chatSession);
+
+        return chatMapper.fromListOfChatMessage(chatMessages);
     }
 }
