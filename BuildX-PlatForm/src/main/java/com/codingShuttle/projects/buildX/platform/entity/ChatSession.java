@@ -18,7 +18,7 @@ import java.time.Instant;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ChatSession {
     @EmbeddedId
-    ChatSessonId id;
+    ChatSessionId id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("projectId")

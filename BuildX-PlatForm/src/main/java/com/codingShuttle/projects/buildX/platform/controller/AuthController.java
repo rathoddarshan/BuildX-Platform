@@ -4,6 +4,7 @@ import com.codingShuttle.projects.buildX.platform.dto.auth.AuthResponse;
 import com.codingShuttle.projects.buildX.platform.dto.auth.LoginRequest;
 import com.codingShuttle.projects.buildX.platform.dto.auth.SignupRequest;
 import com.codingShuttle.projects.buildX.platform.dto.auth.UserProfileResponse;
+import com.codingShuttle.projects.buildX.platform.security.AuthUtil;
 import com.codingShuttle.projects.buildX.platform.service.AuthService;
 import com.codingShuttle.projects.buildX.platform.service.UserService;
 import lombok.AccessLevel;
@@ -20,6 +21,7 @@ public class AuthController {
 
     AuthService authService;
     UserService userService;
+    AuthUtil authUtil;
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request){
@@ -34,7 +36,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getProfile(){
-        Long userId = 1L;
+        Long userId = authUtil.getCurrentUserId();
         return ResponseEntity.ok(userService.getProfile(userId));
     }
 }
