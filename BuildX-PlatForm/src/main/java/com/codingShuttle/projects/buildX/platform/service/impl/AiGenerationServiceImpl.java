@@ -79,10 +79,12 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 .chatResponse()
                 .delayElements(Duration.ofMillis(200))
                 .doOnNext(response -> {
+                    if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
+                        return;
+                    }
                     String content = response.getResult().getOutput().getText();
                     if (content != null && !content.isEmpty() && endTime.get() == 0) {
                         endTime.set(System.currentTimeMillis());
-
                     }
                     fullResponseBuffer.append(content);
                 })
@@ -96,9 +98,11 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 .doOnError(error -> log.error("Error during streaming for projectId {}", projectId, error))
                 // Use handle to safely drop null responses (tool calls) without crashing Reactor
                 .handle((response, sink) -> {
-                    String text = response.getResult().getOutput().getText();
-                    if (text != null) {
-                        sink.next(text);
+                    if (response != null && response.getResult() != null && response.getResult().getOutput() != null) {
+                        String text = response.getResult().getOutput().getText();
+                        if (text != null) {
+                            sink.next(text);
+                        }
                     }
                 });
     }
