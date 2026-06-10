@@ -1,9 +1,7 @@
 package com.codingShuttle.projects.buildX.platform.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import jakarta.persistence.Embeddable;
+import lombok.*;
 
 import java.io.Serializable;
 
@@ -11,6 +9,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @Builder
 @ToString
+@Embeddable
+@EqualsAndHashCode
 public class ChatSessionId implements Serializable {
 
     Long projectId;

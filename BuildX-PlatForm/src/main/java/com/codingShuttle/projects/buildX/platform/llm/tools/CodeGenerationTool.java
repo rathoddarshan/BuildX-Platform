@@ -29,7 +29,13 @@ public class CodeGenerationTool {
             String cleanPath = path.startsWith("/") ? path.substring(1) : path;
             log.info("Requested File: {}", cleanPath);
 
-            String content = projectFileService.getFileContent(projectId, cleanPath).content();
+            String content;
+            try {
+                content = projectFileService.getFileContent(projectId, cleanPath).content();
+            } catch (Exception e) {
+                // Return a descriptive placeholder so the LLM knows it needs to create/write the file
+                content = "[File does not exist yet]";
+            }
 
             result.add(String.format(
                     "--- START OF FILE: %s ---\n%s\n--- END OF FILE---",

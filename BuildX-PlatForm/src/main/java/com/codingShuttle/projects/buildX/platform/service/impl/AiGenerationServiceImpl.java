@@ -67,8 +67,9 @@ public class AiGenerationServiceImpl implements AiGenerationService {
         AtomicReference<Long> endTime = new AtomicReference<>(0L);
 
         CodeGenerationTool codeGenerationTool = new CodeGenerationTool(projectFileService, projectId);
+        String fileTree = projectFileService.getFileTree(projectId).toString();
         return chatClient.prompt()
-                .system(PromptUtils.CODE_GENERATION_SYSTEM_PROMPT)
+                .system(PromptUtils.codeGenerationSystemPrompt(fileTree))
                 .user(userMessage)
                 .tools(codeGenerationTool)
                 .advisors(advisorSpec -> {
@@ -79,10 +80,12 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 .chatResponse()
                 .delayElements(Duration.ofMillis(200))
                 .doOnNext(response -> {
+                    if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
+                        return;
+                    }
                     String content = response.getResult().getOutput().getText();
                     if (content != null && !content.isEmpty() && endTime.get() == 0) {
                         endTime.set(System.currentTimeMillis());
-
                     }
                     fullResponseBuffer.append(content);
                 })
@@ -96,9 +99,11 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 .doOnError(error -> log.error("Error during streaming for projectId {}", projectId, error))
                 // Use handle to safely drop null responses (tool calls) without crashing Reactor
                 .handle((response, sink) -> {
-                    String text = response.getResult().getOutput().getText();
-                    if (text != null) {
-                        sink.next(text);
+                    if (response != null && response.getResult() != null && response.getResult().getOutput() != null) {
+                        String text = response.getResult().getOutput().getText();
+                        if (text != null) {
+                            sink.next(text);
+                        }
                     }
                 });
     }
@@ -130,10 +135,13 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                         .content("Thought for" + duration +"s")
                         .sequenceOrder(0)
                 .build());
-
+        Map<String, ChatEvent> uniqueFileEdits = new java.util.LinkedHashMap<>();
         chatEventList.stream()
                 .filter(e -> e.getType() == ChatEventType.FILE_EDIT)
-                .forEach(e ->projectFileService.saveFile(projectId, e.getFilePath(), e.getContent()));
+                .forEach(e -> uniqueFileEdits.put(e.getFilePath(), e));
+        uniqueFileEdits.values().forEach(e ->
+                projectFileService.saveFile(projectId, e.getFilePath(), e.getContent())
+        );
 
         chatEventRepository.saveAll(chatEventList);
     }

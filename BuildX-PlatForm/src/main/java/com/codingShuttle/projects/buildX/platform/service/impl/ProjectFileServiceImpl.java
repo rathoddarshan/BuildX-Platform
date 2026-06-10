@@ -79,7 +79,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
                 .orElseThrow(
                         ()-> new ResourceNotFoundException("Project", projectId.toString()));
 
-        String cleanPath = path.startsWith(",") ?  path.substring(1): path;
+        String cleanPath = path.startsWith("/") ?  path.substring(1): path;
         String objectKey = projectId + "/" + cleanPath;
 
         try {
