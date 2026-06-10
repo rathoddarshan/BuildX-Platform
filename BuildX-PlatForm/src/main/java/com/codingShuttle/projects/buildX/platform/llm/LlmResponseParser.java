@@ -27,7 +27,7 @@ public class LlmResponseParser {
      */
 
     private static final Pattern GENERIC_TAG_PATTERN = Pattern.compile(
-            "(<(message|file|tool)([^>]*)>)([\\s\\S]*?)(</\\2>)",
+            "(<(message|file|tool)([^>]*)>)(.*?)(</\\2>)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
     );
 

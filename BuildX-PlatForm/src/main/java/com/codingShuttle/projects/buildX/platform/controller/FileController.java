@@ -5,10 +5,7 @@ import com.codingShuttle.projects.buildX.platform.dto.project.FileNode;
 import com.codingShuttle.projects.buildX.platform.service.ProjectFileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -28,7 +25,7 @@ public class FileController {
     @GetMapping("/content")
     public ResponseEntity<FileContentResponse> getFile(
             @PathVariable Long projectId,
-            @PathVariable String path
+            @RequestParam String path
     ){
         return ResponseEntity.ok(projectFileService.getFileContent(projectId, path));
 

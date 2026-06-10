@@ -33,8 +33,8 @@ public class ChatServiceImpl implements ChatService {
         Long userId = authUtil.getCurrentUserId();
 
         ChatSession chatSession = chatSessionRepository.findById(
-                new ChatSessionId(userId, projectId)
-        ).orElseThrow(null);
+                new ChatSessionId(projectId, userId)
+        ).orElse(null);
 
         if(chatSession == null){
             return List.of();

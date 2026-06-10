@@ -67,8 +67,9 @@ public class AiGenerationServiceImpl implements AiGenerationService {
         AtomicReference<Long> endTime = new AtomicReference<>(0L);
 
         CodeGenerationTool codeGenerationTool = new CodeGenerationTool(projectFileService, projectId);
+        String fileTree = projectFileService.getFileTree(projectId).toString();
         return chatClient.prompt()
-                .system(PromptUtils.CODE_GENERATION_SYSTEM_PROMPT)
+                .system(PromptUtils.codeGenerationSystemPrompt(fileTree))
                 .user(userMessage)
                 .tools(codeGenerationTool)
                 .advisors(advisorSpec -> {
@@ -134,10 +135,13 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                         .content("Thought for" + duration +"s")
                         .sequenceOrder(0)
                 .build());
-
+        Map<String, ChatEvent> uniqueFileEdits = new java.util.LinkedHashMap<>();
         chatEventList.stream()
                 .filter(e -> e.getType() == ChatEventType.FILE_EDIT)
-                .forEach(e ->projectFileService.saveFile(projectId, e.getFilePath(), e.getContent()));
+                .forEach(e -> uniqueFileEdits.put(e.getFilePath(), e));
+        uniqueFileEdits.values().forEach(e ->
+                projectFileService.saveFile(projectId, e.getFilePath(), e.getContent())
+        );
 
         chatEventRepository.saveAll(chatEventList);
     }
