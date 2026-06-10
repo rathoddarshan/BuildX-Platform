@@ -51,7 +51,6 @@ public class AiGenerationServiceImpl implements AiGenerationService {
             Pattern.compile("<file path=\"([^\\\"]+)\">(.*?)</file>", Pattern.DOTALL);
 
     @Override
-//    @PreAuthorize("@security.canEditProject(#projectId)")
     public Flux<String> streamResponse(String userMessage, Long projectId) {
         Long userId = authUtil.getCurrentUserId();
         ChatSession chatSession = createChatSessionIfNotExists(projectId, userId);

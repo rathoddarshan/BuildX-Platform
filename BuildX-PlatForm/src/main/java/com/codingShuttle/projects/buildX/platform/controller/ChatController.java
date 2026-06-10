@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -22,6 +23,7 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PreAuthorize("@security.canEditProject(    #request.projectId)")
     public Flux<ServerSentEvent<String>> streamChat(
             @RequestBody ChatRequest request
     ){
@@ -40,6 +42,7 @@ public class ChatController {
     }
 
     @GetMapping("/projects/{projectId}")
+    @PreAuthorize("@security.canViewProject(#projectId)")
     public ResponseEntity<List<ChatResponse>> getChatHistory(
             @PathVariable Long projectId
     ){
