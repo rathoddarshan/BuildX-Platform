@@ -5,6 +5,7 @@ import com.codingShuttle.projects.buildX.platform.dto.project.FileNode;
 import com.codingShuttle.projects.buildX.platform.service.ProjectFileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,17 +18,17 @@ public class FileController {
     private final ProjectFileService projectFileService;
 
     @GetMapping
-    public ResponseEntity<List<FileNode>> getFileTree(@PathVariable Long projectId){
-        Long userId = 1l;
+    @PreAuthorize("@security.canViewProject(#projectId)")
+    public ResponseEntity<List<FileNode>> getFileTree(@PathVariable Long projectId) {
         return ResponseEntity.ok(projectFileService.getFileTree(projectId));
     }
 
     @GetMapping("/content")
+    @PreAuthorize("@security.canViewProject(#projectId)")
     public ResponseEntity<FileContentResponse> getFile(
             @PathVariable Long projectId,
             @RequestParam String path
-    ){
+    ) {
         return ResponseEntity.ok(projectFileService.getFileContent(projectId, path));
-
     }
 }

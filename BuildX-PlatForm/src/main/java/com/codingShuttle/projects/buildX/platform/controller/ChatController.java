@@ -2,6 +2,7 @@ package com.codingShuttle.projects.buildX.platform.controller;
 
 import com.codingShuttle.projects.buildX.platform.dto.chat.ChatRequest;
 import com.codingShuttle.projects.buildX.platform.dto.chat.ChatResponse;
+import com.codingShuttle.projects.buildX.platform.dto.chat.StreamResponse;
 import com.codingShuttle.projects.buildX.platform.service.AiGenerationService;
 import com.codingShuttle.projects.buildX.platform.service.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -24,20 +25,14 @@ public class ChatController {
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @PreAuthorize("@security.canEditProject(    #request.projectId)")
-    public Flux<ServerSentEvent<String>> streamChat(
+    public Flux<ServerSentEvent<StreamResponse>> streamChat(
             @RequestBody ChatRequest request
     ){
 
         return aiGenerationService.streamResponse(request.message(), request.projectId())
-                .map(data -> ServerSentEvent.<String>builder()
+                .map(data -> ServerSentEvent.<StreamResponse>builder()
                         .data(data)
-                        .build())
-                .onErrorReturn(
-                        ServerSentEvent.<String>builder()
-                                        .event("error")
-                                .data("Something went wrong, please try again.")
-                                .build()
-                );
+                        .build());
 
     }
 

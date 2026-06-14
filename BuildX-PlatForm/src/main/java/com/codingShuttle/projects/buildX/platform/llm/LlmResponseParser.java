@@ -27,7 +27,7 @@ public class LlmResponseParser {
      */
 
     private static final Pattern GENERIC_TAG_PATTERN = Pattern.compile(
-            "(<(message|file|tool)([^>]*)>)(.*?)(</\\2>)",
+            "(<(message|file)([^>]*)>)(.*?)(</\\2>)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
     );
 
@@ -62,10 +62,7 @@ public class LlmResponseParser {
                     builder.filePath(attrMap.get("path")); // Required for files
 //                    builder.content(null);
                 }
-                case "tool" -> {
-                    builder.type(ChatEventType.TOOL_LOG);
-                    builder.metadata(attrMap.get("args")); // Store raw file list in metadata
-                }
+
                 default -> { continue; }
             }
 

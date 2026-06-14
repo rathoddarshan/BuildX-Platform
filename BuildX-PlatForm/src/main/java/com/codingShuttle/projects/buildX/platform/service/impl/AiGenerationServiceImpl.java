@@ -1,5 +1,6 @@
 package com.codingShuttle.projects.buildX.platform.service.impl;
 
+import com.codingShuttle.projects.buildX.platform.dto.chat.StreamResponse;
 import com.codingShuttle.projects.buildX.platform.entity.*;
 import com.codingShuttle.projects.buildX.platform.enums.ChatEventType;
 import com.codingShuttle.projects.buildX.platform.enums.MessageRole;
@@ -12,9 +13,11 @@ import com.codingShuttle.projects.buildX.platform.repository.*;
 import com.codingShuttle.projects.buildX.platform.security.AuthUtil;
 import com.codingShuttle.projects.buildX.platform.service.AiGenerationService;
 import com.codingShuttle.projects.buildX.platform.service.ProjectFileService;
+import com.codingShuttle.projects.buildX.platform.service.UsageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -47,13 +50,17 @@ public class AiGenerationServiceImpl implements AiGenerationService {
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatEventRepository chatEventRepository;
+    private final UsageService usageService;
 
 
     private static final Pattern FILE_TAG_PATTERN =
             Pattern.compile("<file path=\"([^\\\"]+)\">(.*?)</file>", Pattern.DOTALL);
 
     @Override
-    public Flux<String> streamResponse(String userMessage, Long projectId) {
+    public Flux<StreamResponse> streamResponse(String userMessage, Long projectId) {
+
+        usageService.checkDailyTokenUsage();//if this gives error then wont proceed
+
         Long userId = authUtil.getCurrentUserId();
         ChatSession chatSession = createChatSessionIfNotExists(projectId, userId);
 
@@ -67,11 +74,12 @@ public class AiGenerationServiceImpl implements AiGenerationService {
 
         AtomicReference<Long> startTime = new AtomicReference<>(System.currentTimeMillis());
         AtomicReference<Long> endTime = new AtomicReference<>(0L);
+        AtomicReference<Usage> usageRef = new AtomicReference<>();
 
         CodeGenerationTool codeGenerationTool = new CodeGenerationTool(projectFileService, projectId);
         String fileTree = projectFileService.getFileTree(projectId).toString();
         return chatClient.prompt()
-                .system(PromptUtils.codeGenerationSystemPrompt(fileTree))
+                .system(PromptUtils.codeGenerationSystemPrompt())
                 .user(userMessage)
                 .tools(codeGenerationTool)
                 .advisors(advisorSpec -> {
@@ -106,34 +114,46 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                             });
                         }
                     }
+
+                    if(response.getMetadata() != null){
+                        usageRef.set(response.getMetadata().getUsage());
+                    }
                 })
                 .doOnComplete(()->{
                     Schedulers.boundedElastic().schedule(()->{ // this is multithreading, Asysnc using thiss Schedulers just because
 //                        parseAndSaveFiles(fullResponseBuffer.toString(), projectId);//we are using Flux for string streaming otherwise we could have used ExecutorService or any other multithreading methods
                         long duration = (endTime.get() - startTime.get()) / 1000;
-                        finalizeChats(userMessage, chatSession, fullResponseBuffer.toString(), duration);
+                        finalizeChats(userMessage, chatSession, fullResponseBuffer.toString(), duration, usageRef.get());
                     });
                 })
-                .doOnError(error -> log.error("Error during streaming for projectId {}", projectId, error))
+                .doOnError(error -> log.error("Error during streaming for projectId {}", projectId))
                 // Use handle to safely drop null responses (tool calls) without crashing Reactor
-                .handle((response, sink) -> {
-                    if (response != null && response.getResult() != null && response.getResult().getOutput() != null) {
-                        String text = response.getResult().getOutput().getText();
-                        if (text != null) {
-                            sink.next(text);
-                        }
+                // FIX: Null-safe mapping of prompt response chunks
+                .map(response -> {
+                    if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
+                        return new StreamResponse("");
                     }
+                    String text = response.getResult().getOutput().getText();
+                    return new StreamResponse(text != null ? text : "");
                 });
+
+
     }
 
-    private void finalizeChats(String userMessage, ChatSession chatSession, String fullText, Long duration){
+    private void finalizeChats(String userMessage, ChatSession chatSession, String fullText, Long duration, Usage usage){
         //save the user message
+
+        if(usage != null){
+            int totalToken = usage.getTotalTokens();
+            usageService.recordTokenUsage(chatSession.getUser().getId(), totalToken);
+        }
         Long projectId = chatSession.getProject().getId();
         chatMessageRepository.save(
                 ChatMessage.builder()
                         .chatSession(chatSession)
                         .role(MessageRole.USER)
                         .content(userMessage)
+                        .tokensUsed(usage.getPromptTokens())
                         .build()
         );
 
@@ -141,6 +161,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 .role(MessageRole.ASSISTANT)
                 .chatSession(chatSession)
                 .content(fullText)
+                .tokensUsed(usage.getCompletionTokens())
                 .build();
 
         assistantChatMessage = chatMessageRepository.save(assistantChatMessage);
