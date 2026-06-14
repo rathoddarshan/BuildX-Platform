@@ -3,6 +3,7 @@ package com.codingShuttle.projects.buildX.platform.mapper;
 import com.codingShuttle.projects.buildX.platform.dto.project.ProjectResponse;
 import com.codingShuttle.projects.buildX.platform.dto.project.ProjectSummaryResponse;
 import com.codingShuttle.projects.buildX.platform.entity.Project;
+import com.codingShuttle.projects.buildX.platform.enums.ProjectRole;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -12,8 +13,10 @@ import java.util.List;
 public interface ProjectMapper {
 
     ProjectResponse toProjectResponse(Project project);
-    @Mapping(target = "projectName", source = "name")
-    ProjectSummaryResponse toProjectSummaryResponse(Project project);
+
+
+    @Mapping(source = "project.name", target = "projectName")
+    ProjectSummaryResponse toProjectSummaryResponse(Project project, ProjectRole role);
 
     List<ProjectSummaryResponse> toListOfProjectSummaryResponse(List<Project> project);
 }

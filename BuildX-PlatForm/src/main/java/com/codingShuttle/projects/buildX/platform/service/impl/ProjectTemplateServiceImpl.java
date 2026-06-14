@@ -54,7 +54,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
                 Item item = result.get();
                 String sourceKey = item.objectName();
 
-                String cleanPath = sourceKey.replaceFirst(TEMPLATE_NAME + "/", "");
+                if (sourceKey.endsWith("/")) continue;
+                String cleanPath = sourceKey.replaceFirst(TEMPLATE_NAME, "");
                 String destKey = projectId + "/" + cleanPath;
 
                 minioClient.copyObject(
