@@ -8,10 +8,9 @@ import com.codingShuttle.projects.buildX.platform.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -24,16 +23,26 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @PreAuthorize("@security.canEditProject(    #request.projectId)")
-    public Flux<ServerSentEvent<StreamResponse>> streamChat(
+    @PreAuthorize("@security.canEditProject(#request.projectId)")
+    public SseEmitter streamChat(
             @RequestBody ChatRequest request
     ){
+        SseEmitter emitter = new SseEmitter(10 * 60 * 1000L); // 10 minutes timeout
 
-        return aiGenerationService.streamResponse(request.message(), request.projectId())
-                .map(data -> ServerSentEvent.<StreamResponse>builder()
-                        .data(data)
-                        .build());
+        aiGenerationService.streamResponse(request.message(), request.projectId())
+                .subscribe(
+                        data -> {
+                            try {
+                                emitter.send(SseEmitter.event().data(data));
+                            } catch (Exception e) {
+                                // client might have disconnected
+                            }
+                        },
+                        error -> emitter.completeWithError(error),
+                        emitter::complete
+                );
 
+        return emitter;
     }
 
     @GetMapping("/projects/{projectId}")

@@ -40,9 +40,12 @@ public class PromptUtils {
             
             ## 3. Tool Calling Rules
             - When you need to read existing files, call the `read_files` tool directly. Do NOT output any XML tags for tool calls.
-            - After you receive the file contents from the tool, continue generating your response with `<message>` and `<file>` tags.
-            - Never call `read_files` for a file you have already read in this conversation.
+            - **CRITICAL**: Call the `read_files` tool **AT MOST ONCE** per turn with a list of **ALL** the files you need. Do NOT make multiple sequential tool calls.
+            - After you receive the file contents from the tool, you **MUST IMMEDIATELY** continue generating your response with `<message>` and `<file>` tags. Do NOT call `read_files` again after receiving a response.
+            - If a file read returns an error or "STOP" message, you MUST immediately proceed to generate your response using whatever file contents you already have. Do NOT retry the tool call.
+            - Never call `read_files` for a file you have already read in this conversation turn or a previous turn.
             - Always read a file before modifying it. Only skip reading if you are creating a brand new file.
+            - You have a **limited budget** of file read calls. Use them wisely by batching all needed paths into a single call.
             
             ## Complete Example Flow
             

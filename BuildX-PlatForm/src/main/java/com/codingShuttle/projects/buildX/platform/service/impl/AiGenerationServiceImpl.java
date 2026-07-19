@@ -77,7 +77,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
         AtomicReference<Usage> usageRef = new AtomicReference<>();
 
         CodeGenerationTool codeGenerationTool = new CodeGenerationTool(projectFileService, projectId);
-        String fileTree = projectFileService.getFileTree(projectId).toString();
+        String fileTree = projectFileService.getLlmFileTree(projectId).toString();
         return chatClient.prompt()
                 .system(PromptUtils.codeGenerationSystemPrompt())
                 .user(userMessage)
@@ -88,30 +88,31 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 })
                 .stream()
                 .chatResponse()
-                .delayElements(Duration.ofMillis(200))
                 .doOnNext(response -> {
                     if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
                         return;
                     }
                     String content = response.getResult().getOutput().getText();
-                    if (content != null && !content.isEmpty() && endTime.get() == 0) {
-                        endTime.set(System.currentTimeMillis());
-                    }
-                    fullResponseBuffer.append(content);
-                    Matcher matcher = FILE_TAG_PATTERN.matcher(fullResponseBuffer.toString());
-                    while (matcher.find()) {
-                        String filePath = matcher.group(1);
-                        String fileContent = matcher.group(2);
-                        if (!savedFiles.contains(filePath)) {
-                            savedFiles.add(filePath);
-                            Schedulers.boundedElastic().schedule(() -> {
-                                try {
-                                    projectFileService.saveFile(projectId, filePath, fileContent);
-                                    log.info("Saved file on the fly: {}", filePath);
-                                } catch (Exception e) {
-                                    log.error("Failed to save file on the fly: {}", filePath, e);
-                                }
-                            });
+                    if (content != null && !content.isEmpty()) {
+                        if (endTime.get() == 0) {
+                            endTime.set(System.currentTimeMillis());
+                        }
+                        fullResponseBuffer.append(content);
+                        Matcher matcher = FILE_TAG_PATTERN.matcher(fullResponseBuffer.toString());
+                        while (matcher.find()) {
+                            String filePath = matcher.group(1);
+                            String fileContent = matcher.group(2);
+                            if (!savedFiles.contains(filePath)) {
+                                savedFiles.add(filePath);
+                                Schedulers.boundedElastic().schedule(() -> {
+                                    try {
+                                        projectFileService.saveFile(projectId, filePath, fileContent);
+                                        log.info("Saved file on the fly: {}", filePath);
+                                    } catch (Exception e) {
+                                        log.error("Failed to save file on the fly: {}", filePath, e);
+                                    }
+                                });
+                            }
                         }
                     }
 
@@ -127,15 +128,9 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                     });
                 })
                 .doOnError(error -> log.error("Error during streaming for projectId {}", projectId))
-                // Use handle to safely drop null responses (tool calls) without crashing Reactor
-                // FIX: Null-safe mapping of prompt response chunks
-                .map(response -> {
-                    if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
-                        return new StreamResponse("");
-                    }
-                    String text = response.getResult().getOutput().getText();
-                    return new StreamResponse(text != null ? text : "");
-                });
+                // Filter out empty/null responses and map to StreamResponse immediately
+                .filter(response -> response != null && response.getResult() != null && response.getResult().getOutput() != null && response.getResult().getOutput().getText() != null && !response.getResult().getOutput().getText().isEmpty())
+                .map(response -> new StreamResponse(response.getResult().getOutput().getText()));
 
 
     }

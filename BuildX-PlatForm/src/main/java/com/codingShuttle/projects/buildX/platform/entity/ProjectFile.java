@@ -29,6 +29,9 @@ public class ProjectFile {
 
     String minioObjectKey;
 
+    @Builder.Default
+    Boolean isStarter = false;
+
     @CreationTimestamp
     Instant createdAt;
     
