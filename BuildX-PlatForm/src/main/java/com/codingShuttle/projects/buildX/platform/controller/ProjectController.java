@@ -1,12 +1,16 @@
 package com.codingShuttle.projects.buildX.platform.controller;
 
+import com.codingShuttle.projects.buildX.platform.dto.deploy.DeployResponse;
 import com.codingShuttle.projects.buildX.platform.dto.project.ProjectRequest;
 import com.codingShuttle.projects.buildX.platform.dto.project.ProjectResponse;
 import com.codingShuttle.projects.buildX.platform.dto.project.ProjectSummaryResponse;
 import com.codingShuttle.projects.buildX.platform.security.AuthUtil;
+import com.codingShuttle.projects.buildX.platform.service.DeploymentService;
 import com.codingShuttle.projects.buildX.platform.service.ProjectService;
 import jakarta.validation.Valid;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +23,7 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final DeploymentService deploymentService;
 
     @GetMapping
     public ResponseEntity<List<ProjectSummaryResponse>> getMyProjects(){
@@ -44,6 +49,11 @@ public class ProjectController {
     public ResponseEntity<Void> deleteProject(@PathVariable Long id){
         projectService.softDelete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/deploy")
+    public ResponseEntity<DeployResponse> deployProject(@PathVariable Long id){
+        return ResponseEntity.ok(deploymentService.deploy(id));
     }
 
 }

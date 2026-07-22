@@ -70,6 +70,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(apiError.status()).body(apiError);
     }
 
+    @ExceptionHandler(ToolBudgetExhaustedException.class)
+    public ResponseEntity<ApiError> handleToolBudgetExhausted(ToolBudgetExhaustedException ex) {
+        ApiError apiError = new ApiError(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Project " + ex.getProjectId() + ": " + ex.getMessage()
+        );
+        log.error("Tool budget exhausted: {}", apiError.toString());
+        return ResponseEntity.status(apiError.status()).body(apiError);
+    }
+
 }
 
 

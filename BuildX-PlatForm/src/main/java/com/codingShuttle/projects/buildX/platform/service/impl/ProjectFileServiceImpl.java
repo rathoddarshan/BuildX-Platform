@@ -43,21 +43,39 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     @Override
     public List<FileNode> getFileTree(Long projectId) {
 
-        List<ProjectFile> projectFileList = projectFileRepository.findByProjectId(projectId);
+        List<ProjectFile> projectFileList = projectFileRepository.findNonStarterFilesByProjectId(projectId);
         return projectFileMapper.toListOfFileNode(projectFileList);
 
     }
 
     @Override
+    public List<FileNode> getLlmFileTree(Long projectId) {
+
+        List<ProjectFile> projectFileList = projectFileRepository.findByProjectId(projectId);
+        return projectFileMapper.toListOfFileNode(projectFileList);
+
+    }
+
+    private String normalizePath(String path) {
+        if (path == null) return "";
+        String cleanPath = path.replace("\\", "/");
+        if (cleanPath.startsWith("/")) {
+            cleanPath = cleanPath.substring(1);
+        }
+        return cleanPath;
+    }
+
+    @Override
     public FileContentResponse getFileContent(Long projectId, String path) {
 
-        String objectName = projectId + "/" + path;
+        String cleanPath = normalizePath(path);
+        String objectKey = projectId + "/" + cleanPath;
 
         try(
             InputStream is = minioClient.getObject(
                     GetObjectArgs.builder()
                             .bucket(BUCKET_NAME)
-                            .object(objectName)
+                            .object(objectKey)
                             .build())){
 
             String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
@@ -79,7 +97,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
                 .orElseThrow(
                         ()-> new ResourceNotFoundException("Project", projectId.toString()));
 
-        String cleanPath = path.startsWith("/") ?  path.substring(1): path;
+        String cleanPath = normalizePath(path);
         String objectKey = projectId + "/" + cleanPath;
 
         try {
@@ -105,6 +123,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
                     );
 
             file.setUpdatedAt(Instant.now());
+            file.setIsStarter(false);
             projectFileRepository.save(file);
 
             log.info("Saved file {}", objectKey);

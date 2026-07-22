@@ -30,7 +30,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
 
     private static final String TEMPLATE_BUCKET = "starter-projects";
     private static final String TARGET_BUCKET = "projects";
-    private static final String TEMPLATE_NAME = "vite_react_shadcn_ts-main/";
+    private static final String TEMPLATE_NAME = "react_vite_tailwind_daisyui_starter_3b29be1f84/react-vite-tailwind-daisyui-starter/";
 
     @Override
     public void initializeProjectFromTemplate(Long projectId) {
@@ -77,6 +77,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
                         .minioObjectKey(destKey)
                         .createdAt(Instant.now())
                         .updatedAt(Instant.now())
+                        .isStarter(true)
                         .build();
 
                 filesToSave.add(pf);

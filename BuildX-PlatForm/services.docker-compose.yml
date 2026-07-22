@@ -22,8 +22,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
     ports:
-      - "9010:9000"    # API
-      - "9011:9001"    # Console
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio-data:/data
     restart: unless-stopped
