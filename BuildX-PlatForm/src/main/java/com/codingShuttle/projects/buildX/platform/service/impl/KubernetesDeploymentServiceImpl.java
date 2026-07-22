@@ -1,7 +1,6 @@
 package com.codingShuttle.projects.buildX.platform.service.impl;
 
 import com.codingShuttle.projects.buildX.platform.dto.deploy.DeployResponse;
-import com.codingShuttle.projects.buildX.platform.error.ResourceNotFoundException;
 import com.codingShuttle.projects.buildX.platform.service.DeploymentService;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -34,55 +33,95 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
     @Override
     public DeployResponse deploy(Long projectId) {
 
-        String domain ="project-" + projectId + ".app.domain.com";
+        String domain = "project-" + projectId + ".app.domain.com";
 
         Pod existingPod = findActivePod(projectId);
 
-        if(existingPod != null){
-            return new DeployResponse("http://"+domain+ ":" +  REVERSE_PROXY_PORT);
+        if (existingPod != null) {
+            log.info("Project {} already has an active pod: {}", projectId, existingPod.getMetadata().getName());
+            return new DeployResponse("http://" + domain + ":" + REVERSE_PROXY_PORT);
         }
         return claimAndStartNewPod(projectId, domain);
     }
 
     private DeployResponse claimAndStartNewPod(Long projectId, String domain) {
-        Pod pod = client.pods().inNamespace(NAMESPACE)
+
+        Pod pod = client.pods()
+                .inNamespace(NAMESPACE)
                 .withLabel(POOL_LABEL, IDLE)
-                .list().getItems().stream()
+                .list()
+                .getItems()
+                .stream()
                 .findFirst()
-                .orElseThrow(()-> new RuntimeException("No idle runner available. Please scale up the runner pool."));
+                .orElseThrow(() ->
+                        new RuntimeException("No idle runner available. Please scale up the runner pool."));
 
         String podName = pod.getMetadata().getName();
-        log.info("Claiming pod {} for  project {}", podName, projectId);
 
-        client.pods().inNamespace(NAMESPACE).withName(podName).edit(p -> {
-                p.getMetadata().getLabels().put(POOL_LABEL, BUSY);
-                p.getMetadata().getLabels().put(PROJECT_LABEL, projectId.toString());
-                return p;
-        });
+        log.info("Claiming pod {} for project {}", podName, projectId);
 
-        //Syncer commands
+        client.pods()
+                .inNamespace(NAMESPACE)
+                .withName(podName)
+                .edit(p -> {
+                    if (p.getMetadata().getLabels() == null) {
+                        p.getMetadata().setLabels(new java.util.HashMap<>());
+                    }
 
-        String initialSyncCmd = String.format(
-                "rm -rf /app/* && mc mirror --overwrite myminio/projects/%d/ /app/",
-                projectId
-        );
+                    p.getMetadata().getLabels().put(POOL_LABEL, BUSY);
+                    p.getMetadata().getLabels().put(PROJECT_LABEL, projectId.toString());
+
+                    return p;
+                });
+
+        // 1. Initial file sync from MinIO to /app (SYNCHRONOUS - waits for completion)
+        String initialSyncCmd = String.format("""
+            set -e
+            rm -rf /app/*
+            mc mirror --overwrite myminio/projects/%d/ /app/
+            """, projectId);
+
+        log.info("Executing initial sync for project {} on pod {}", projectId, podName);
         execCommand(podName, SYNCER_CONTAINER, "sh", "-c", initialSyncCmd);
 
-        String watchCmd = String.format(
-                "nohup mc mirror --overwrite --watch myminio/projects/%d/ /app/ > /app/sync.log 2>&1 &",
-                projectId
-        );
+        // 2. Start continuous sync in background (BACKGROUND - fully detached)
+        String watchCmd = String.format("""
+                nohup mc mirror --overwrite --watch myminio/projects/%d/ /app/ \
+                > /app/sync.log 2>&1 </dev/null &
+                """, projectId);
 
+        log.info("Starting background file watcher for project {} on pod {}", projectId, podName);
         execCommand(podName, SYNCER_CONTAINER, "sh", "-c", watchCmd);
 
-        //Runner commands
+        // 3. Install NPM dependencies (SYNCHRONOUS - waits up to 120s for npm install to finish)
+        String installCmd = """
+            set -e
 
-        String startCmd = "npm install && nohup npm run dev -- --host 0.0.0.0 --port 5173 > /app/dev.log 2>&1 &";
+            cd /app
 
-        log.info("Starting dev server for project {}...", projectId);
+            while [ ! -f package.json ]
+            do
+              sleep 1
+            done
+
+            npm install
+            """;
+
+        log.info("Installing dependencies for project {} on pod {}", projectId, podName);
+        execCommand(podName, RUNNER_CONTAINER, "sh", "-c", installCmd);
+
+        // 4. Start the dev server in the background (BACKGROUND - fully detached)
+        String startCmd = """
+            cd /app
+        
+            nohup npm run dev -- --host 0.0.0.0 --port 5173 \
+            > /app/dev.log 2>&1 </dev/null &
+            """;
+
+        log.info("Starting dev server for project {} on pod {}", projectId, podName);
         execCommand(podName, RUNNER_CONTAINER, "sh", "-c", startCmd);
 
-        log.info("Deployment Successfull:  http://{}:{}", domain, REVERSE_PROXY_PORT);
+        log.info("Deployment completed for project {} on pod {}", projectId, podName);
 
         return new DeployResponse("http://" + domain + ":" + REVERSE_PROXY_PORT);
     }
@@ -115,7 +154,7 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
             if (command[command.length - 1].trim().endsWith("&")) {
                 Thread.sleep(1000);
             } else {
-                data.get(60, TimeUnit.SECONDS);
+                data.get(120, TimeUnit.SECONDS); // Increased timeout to 120s for npm install
             }
 
             if (!out.toString().isBlank()) {
@@ -136,9 +175,13 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
         }
     }
 
-    Pod findActivePod(Long projectId){
-        return client.pods().inNamespace(NAMESPACE) .withLabel(PROJECT_LABEL, projectId.toString())
-                .withLabel(POOL_LABEL, BUSY) .list().getItems().stream()
+    Pod findActivePod(Long projectId) {
+        return client.pods().inNamespace(NAMESPACE)
+                .withLabel(PROJECT_LABEL, projectId.toString())
+                .withLabel(POOL_LABEL, BUSY)
+                .list().getItems().stream()
                 .filter(pod -> pod.getStatus().getPhase().equals("Running"))
-                .findFirst() .orElse(null); }
+                .findFirst()
+                .orElse(null);
+    }
 }
