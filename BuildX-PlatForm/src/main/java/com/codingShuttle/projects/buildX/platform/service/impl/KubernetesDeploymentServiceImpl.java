@@ -74,56 +74,65 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
                     return p;
                 });
 
-        // 1. Initial file sync from MinIO to /app (SYNCHRONOUS - waits for completion)
-        String initialSyncCmd = String.format("""
-            set -e
-            rm -rf /app/*
-            mc mirror --overwrite myminio/projects/%d/ /app/
-            """, projectId);
+        try {
 
-        log.info("Executing initial sync for project {} on pod {}", projectId, podName);
-        execCommand(podName, SYNCER_CONTAINER, "sh", "-c", initialSyncCmd);
+            // 1. Initial file sync from MinIO to /app (SYNCHRONOUS - waits for completion)
+            String initialSyncCmd = String.format("""
+                    set -e
+                    rm -rf /app/*
+                    mc mirror --overwrite myminio/projects/%d/ /app/
+                    """, projectId);
 
-        // 2. Start continuous sync in background (BACKGROUND - fully detached)
-        String watchCmd = String.format("""
-                nohup mc mirror --overwrite --watch myminio/projects/%d/ /app/ \
-                > /app/sync.log 2>&1 </dev/null &
-                """, projectId);
+            log.info("Executing initial sync for project {} on pod {}", projectId, podName);
+            execCommand(podName, SYNCER_CONTAINER, "sh", "-c", initialSyncCmd);
 
-        log.info("Starting background file watcher for project {} on pod {}", projectId, podName);
-        execCommand(podName, SYNCER_CONTAINER, "sh", "-c", watchCmd);
+            // 2. Start continuous sync in background (BACKGROUND - fully detached)
+            String watchCmd = String.format("""
+                    nohup mc mirror --overwrite --watch myminio/projects/%d/ /app/ \
+                    > /app/sync.log 2>&1 </dev/null &
+                    """, projectId);
 
-        // 3. Install NPM dependencies (SYNCHRONOUS - waits up to 120s for npm install to finish)
-        String installCmd = """
-            set -e
+            log.info("Starting background file watcher for project {} on pod {}", projectId, podName);
+            execCommand(podName, SYNCER_CONTAINER, "sh", "-c", watchCmd);
 
-            cd /app
+            // 3. Install NPM dependencies (SYNCHRONOUS - waits up to 120s for npm install to finish)
+            String installCmd = """
+                    set -e
+                    
+                    cd /app
+                    
+                    while [ ! -f package.json ]
+                    do
+                      sleep 1
+                    done
+                    
+                    npm install
+                    """;
 
-            while [ ! -f package.json ]
-            do
-              sleep 1
-            done
+            log.info("Installing dependencies for project {} on pod {}", projectId, podName);
+            execCommand(podName, RUNNER_CONTAINER, "sh", "-c", installCmd);
 
-            npm install
-            """;
+            // 4. Start the dev server in the background (BACKGROUND - fully detached)
+            String startCmd = """
+                    cd /app
+                    
+                    nohup npm run dev -- --host 0.0.0.0 --port 5173 \
+                    > /app/dev.log 2>&1 </dev/null &
+                    """;
 
-        log.info("Installing dependencies for project {} on pod {}", projectId, podName);
-        execCommand(podName, RUNNER_CONTAINER, "sh", "-c", installCmd);
+            log.info("Starting dev server for project {} on pod {}", projectId, podName);
+            execCommand(podName, RUNNER_CONTAINER, "sh", "-c", startCmd);
 
-        // 4. Start the dev server in the background (BACKGROUND - fully detached)
-        String startCmd = """
-            cd /app
-        
-            nohup npm run dev -- --host 0.0.0.0 --port 5173 \
-            > /app/dev.log 2>&1 </dev/null &
-            """;
+            log.info("Deployment completed for project {} on pod {}", projectId, podName);
 
-        log.info("Starting dev server for project {} on pod {}", projectId, podName);
-        execCommand(podName, RUNNER_CONTAINER, "sh", "-c", startCmd);
+            return new DeployResponse("http://" + domain + ":" + REVERSE_PROXY_PORT);
 
-        log.info("Deployment completed for project {} on pod {}", projectId, podName);
-
-        return new DeployResponse("http://" + domain + ":" + REVERSE_PROXY_PORT);
+        }
+        catch(Exception e){
+            log.error("Deployment failed for project {}.", projectId, podName, e);
+            client.pods().inNamespace(NAMESPACE).withName(podName).delete();
+            throw new RuntimeException("Failed to deploy the project with id"+ projectId);
+        }
     }
 
     private void execCommand(String podName, String container, String... command) {
